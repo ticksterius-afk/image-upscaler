@@ -1,0 +1,8 @@
+# PyTorch is installed separately from the CUDA 12.6 index (see setup.bat).
+# cu126 is the newest build that still supports GTX 10-series (Pascal) GPUs.
+spandrel
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+numpy

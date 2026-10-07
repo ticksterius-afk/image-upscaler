@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Upscaler</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%238b8cff'/%3E%3Cstop offset='1' stop-color='%23c18cff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M9 14v9h9M19 9h4v4M23 9l-7 7' stroke='%230b0b16' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10v9h9M15 5h4v4M19 5l-7 7"/></svg>
+      </span>
+      Upscaler
+      <span class="brand-sub">Local AI image enlargement</span>
+    </div>
+    <nav class="modetabs" role="tablist" aria-label="Mode">
+      <button role="tab" data-appmode="single" aria-selected="true">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-4.5-4.5L7 20"/></svg>
+        Single image
+      </button>
+      <button role="tab" data-appmode="batch" aria-selected="false">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="14" height="14" rx="3"/><path d="M17 3H6a3 3 0 0 0-3 3v11"/></svg>
+        Batch <span class="count" id="batchCount" hidden></span>
+      </button>
+    </nav>
+    <div class="device" id="device" title="Where the models run">
+      <span class="dot"></span><span id="deviceName">Connecting…</span>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="empty" id="empty">
+      <div class="drop-card" id="dropCard" role="button" tabindex="0" aria-label="Choose an image to upscale">
+        <div class="drop-icon">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="9" cy="9" r="1.8"/><path d="m21 15-4.5-4.5L7 20"/></svg>
+        </div>
+        <h1>Drop an image to upscale</h1>
+        <p>or <span class="link">browse your files</span>, or paste with <kbd>Ctrl</kbd><kbd>V</kbd></p>
+        <p class="formats">PNG · JPG · WEBP · BMP · TIFF · GIF</p>
+      </div>
+      <ol class="how">
+        <li><span>1</span>Add an image</li>
+        <li><span>2</span>Pick a model that suits it</li>
+        <li><span>3</span>Upscale, compare, download</li>
+      </ol>
+    </div>
+
+    <div class="viewer" id="viewer" hidden>
+      <div class="frame" id="frame"></div>
+      <div class="canvas" id="canvas">
+        <img id="imgAfter" alt="Upscaled result" hidden>
+        <img id="imgBefore" alt="Original image">
+      </div>
+      <div class="divider" id="divider" hidden>
+        <div class="handle">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 7-5 5 5 5M15 7l5 5-5 5"/></svg>
+        </div>
+      </div>
+      <span class="tag tag-before" id="tagBefore" hidden>Before</span>
+      <span class="tag tag-after" id="tagAfter" hidden>After</span>
+
+      <div class="busy" id="busy" hidden>
+        <div class="busy-card">
+          <div class="busy-top"><span class="busy-title" id="busyTitle">Working</span><span class="busy-pct" id="busyPct"></span></div>
+          <div class="busy-detail" id="busyDetail"></div>
+          <div class="progress" id="busyBar"><i></i></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar" id="toolbar" hidden>
+      <div class="pill runs" id="runs" aria-label="Results"></div>
+      <div class="spacer"></div>
+      <div class="pill">
+        <div class="modes" id="modes">
+          <button class="tb-btn" data-mode="before" title="Show original (B)">Before</button>
+          <button class="tb-btn" data-mode="split" title="Side-by-side slider (S)">Split</button>
+          <button class="tb-btn" data-mode="after" title="Show result (A)">After</button>
+          <span class="sep"></span>
+        </div>
+        <button class="tb-btn" id="zoomOut" title="Zoom out (−)" aria-label="Zoom out">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+        </button>
+        <button class="tb-btn zoom-label" id="zoomLabel" title="Actual pixels (1)">100%</button>
+        <button class="tb-btn" id="zoomIn" title="Zoom in (+)" aria-label="Zoom in">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <button class="tb-btn" id="zoomFit" title="Fit to screen (F)" aria-label="Fit to screen">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="batch" id="batchView" hidden>
+      <div class="empty" id="batchEmpty">
+        <div class="drop-card" id="batchDrop" role="button" tabindex="0" aria-label="Choose images for a batch">
+          <div class="drop-icon">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="14" height="14" rx="3"/><path d="M17 3H6a3 3 0 0 0-3 3v11"/><path d="M14 11v6M11 14h6"/></svg>
+          </div>
+          <h1>Drop a batch of images</h1>
+          <p>or <span class="link">choose several files</span>. They'll all get the same model and size.</p>
+          <p class="formats">PNG · JPG · WEBP · BMP · TIFF · GIF</p>
+        </div>
+        <ol class="how">
+          <li><span>1</span>Add as many images as you like</li>
+          <li><span>2</span>Pick a model and a size</li>
+          <li><span>3</span>Upscale all, then download a ZIP</li>
+        </ol>
+      </div>
+
+      <div class="batch-wrap" id="batchWrap" hidden>
+        <div class="batch-head">
+          <div>
+            <h2 id="batchTitle"></h2>
+            <p id="batchSub"></p>
+          </div>
+          <div class="batch-actions">
+            <button class="btn-sm" data-action="add-batch">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              Add images
+            </button>
+            <button class="btn-sm" data-action="clear-batch">Clear</button>
+          </div>
+        </div>
+        <div class="batch-progress" id="batchProgress" hidden>
+          <div class="bp-top"><span id="bpTitle"></span><span id="bpEta"></span></div>
+          <div class="progress"><i id="bpBar"></i></div>
+        </div>
+        <ul class="batch-list" id="batchList"></ul>
+      </div>
+    </div>
+
+    <div class="dropveil" id="dropveil">Drop to replace the image</div>
+  </main>
+
+  <aside class="panel">
+    <section class="step" id="step1">
+      <h2><span class="num">1</span><span id="step1Title">Image</span></h2>
+      <div id="imageInfo"></div>
+    </section>
+
+    <section class="step grow" id="step2">
+      <h2><span class="num">2</span>Model <span class="h-aside" id="modelCount"></span></h2>
+      <div class="chips" id="filters" role="toolbar" aria-label="Filter models"></div>
+      <p class="legend"><b>Detail</b> is how crisp the result looks. <b>Fidelity</b> is how closely it sticks to the original instead of inventing texture.</p>
+      <div class="models" id="models" role="radiogroup" aria-label="Upscaling model"></div>
+    </section>
+
+    <section class="step" id="step3">
+      <h2><span class="num">3</span>Enlarge by</h2>
+      <div class="seg" id="scales" role="group" aria-label="Scale"></div>
+      <div class="custom" id="customRow" hidden>
+        <div class="stepper">
+          <button data-nudge="-0.5" aria-label="Decrease by 0.5">−</button>
+          <input id="customScale" type="number" min="1" max="8" step="0.1" inputmode="decimal" aria-label="Custom scale factor">
+          <span class="x">×</span>
+          <button data-nudge="0.5" aria-label="Increase by 0.5">+</button>
+        </div>
+        <span class="custom-hint">Any factor from 1× to 8×.<br>Decimals like 2.5 work.</span>
+      </div>
+      <div class="dims" id="dims"></div>
+      <p class="note" id="scaleNote" hidden></p>
+    </section>
+
+    <div class="actions">
+      <div class="go-row">
+        <button class="go" id="goBtn" disabled>
+          <span class="fill" id="goFill"></span>
+          <span class="go-label" id="goLabel">Upscale</span>
+          <span class="go-est" id="goEst"></span>
+        </button>
+        <button class="cancel" id="cancelBtn" hidden title="Cancel (Esc)">Cancel</button>
+      </div>
+
+      <div class="result" id="result" hidden>
+        <div class="result-row">
+          <div class="seg small" id="formats" role="group" aria-label="File format">
+            <button data-fmt="png" title="Lossless, keeps transparency">PNG</button>
+            <button data-fmt="jpg" title="Smaller files, no transparency">JPG</button>
+            <button data-fmt="webp" title="Small files, keeps transparency">WebP</button>
+          </div>
+          <button class="btn btn-accent" id="downloadBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+            <span id="downloadLabel">Download</span>
+          </button>
+        </div>
+        <div class="saved">
+          <span id="savedName"></span>
+          <button class="link-btn" id="revealBtn">Show in folder</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<input type="file" id="fileInput" accept="image/*,.tif,.tiff" hidden>
+<input type="file" id="batchInput" accept="image/*,.tif,.tiff" multiple hidden>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

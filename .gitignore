@@ -1,0 +1,27 @@
+# Python virtual env (recreated by setup.bat)
+.venv/
+__pycache__/
+*.pyc
+
+# Model weights (auto-downloaded from official releases on first use)
+models/
+*.pth
+*.safetensors
+
+# Generated images
+outputs/
+
+# Local / editor clutter
+.env
+*.log
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+
+# safety: secrets, dependencies, OS clutter
+.env.*
+*.pem
+*.key
+node_modules/
+desktop.ini
